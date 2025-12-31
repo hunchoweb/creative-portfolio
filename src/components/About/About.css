@@ -1,0 +1,236 @@
+/* About Section */
+.about {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  padding: 8rem 1.5rem;
+  background-color: #0a0a0a;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+}
+
+/* Film grain overlay */
+.about-grain {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Gradient accents */
+.about::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 50%;
+  height: 60%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(139, 0, 0, 0.15) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.about::after {
+  content: "";
+  position: absolute;
+  bottom: -10%;
+  left: -10%;
+  width: 40%;
+  height: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(139, 0, 0, 0.1) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.about-content {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  z-index: 2;
+  text-align: left;
+}
+
+/* Heading */
+.about-heading {
+  font-family: "PP Neue Montreal", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: clamp(3rem, 8vw, 6rem);
+  font-weight: 900;
+  color: #f5f5f0;
+  letter-spacing: -0.02em;
+  margin-bottom: 4rem;
+  text-transform: uppercase;
+  visibility: hidden;
+  perspective: 500px;
+}
+
+.about-heading .char {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+/* Text styling */
+.about-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  margin-bottom: 5rem;
+}
+
+.about-paragraph {
+  font-family: "PP Neue Montreal", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: clamp(0.85rem, 1.2vw, 1rem);
+  font-weight: 400;
+  line-height: 1.8;
+  letter-spacing: 0.02em;
+  max-width: 800px;
+  visibility: hidden;
+}
+
+/* Word and char styles for terminal text reveal */
+.about-paragraph .word {
+  display: inline-block;
+  margin-right: 0.3em;
+}
+
+.about-paragraph .char {
+  display: inline-block;
+  will-change: color;
+  transition: color 0.05s ease;
+}
+
+/* Image section */
+.about-image-container {
+  position: relative;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.about-image-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.about-image {
+  width: 100%;
+  height: 120%;
+  object-fit: cover;
+  object-position: center;
+  filter: grayscale(20%) contrast(1.1);
+  transition: filter 0.6s ease;
+}
+
+.about-image-wrapper:hover .about-image {
+  filter: grayscale(0%) contrast(1.05);
+}
+
+/* Red tint overlay */
+.about-image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(139, 0, 0, 0.4) 0%,
+    rgba(80, 0, 0, 0.6) 100%
+  );
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* Vignette effect on image */
+.about-image-wrapper::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+  pointer-events: none;
+}
+
+/* Responsive */
+@media (max-width: 1000px) {
+  .about {
+    padding: 6rem 1.5rem;
+    padding-left: 5rem;
+  }
+
+  .about-heading {
+    font-size: clamp(2.5rem, 10vw, 4rem);
+    margin-bottom: 3rem;
+  }
+
+  .about-text {
+    gap: 2rem;
+    margin-bottom: 4rem;
+  }
+
+  .about-paragraph {
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+}
+
+@media (max-width: 768px) {
+  .about {
+    padding: 4rem 1.5rem;
+  }
+
+  .about-heading {
+    font-size: clamp(2rem, 12vw, 3rem);
+    margin-bottom: 2rem;
+  }
+
+  .about-image-container {
+    max-width: 100%;
+  }
+}
+
+/* Explosion Effect */
+.explosion-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.explosion-particle-img {
+  position: absolute;
+  bottom: -150px;
+  left: 50%;
+  width: 120px;
+  height: auto;
+  object-fit: cover;
+  transform: translateX(-50%);
+  will-change: transform;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
