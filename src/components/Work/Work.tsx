@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { SplitText } from "gsap/SplitText";
 import { useGSAP } from "@gsap/react";
 import "./Work.css";
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, SplitText);
 
 interface Project {
   title: string;
@@ -98,8 +99,212 @@ interface ProjectCardProps {
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const descRef = useRef<HTMLParagraphElement>(null);
+  const magneticRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const rafRef = useRef<number | null>(null);
+
+  // magnetic hover
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!titleRef.current) return;
+
+    const rect = titleRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const deltaX = (e.clientX - centerX) * 0.15;
+    const deltaY = (e.clientY - centerY) * 0.15;
+
+    magneticRef.current = { x: deltaX, y: deltaY };
+
+    if (!rafRef.current) {
+      rafRef.current = requestAnimationFrame(() => {
+        if (titleRef.current) {
+          gsap.to(titleRef.current, {
+            x: magneticRef.current.x,
+            y: magneticRef.current.y,
+            duration: 0.4,
+            ease: "power2.out",
+          });
+        }
+        rafRef.current = null;
+      });
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    if (titleRef.current) {
+      gsap.to(titleRef.current, {
+        x: 0,
+        y: 0,
+        duration: 0.6,
+        ease: "elastic.out(1, 0.3)",
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    card.addEventListener("mousemove", handleMouseMove);
+    card.addEventListener("mouseleave", handleMouseLeave);
+
+    return () => {
+      card.removeEventListener("mousemove", handleMouseMove);
+      card.removeEventListener("mouseleave", handleMouseLeave);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, [handleMouseMove, handleMouseLeave]);
+
+  // scroll animations
+  useGSAP(
+    () => {
+      if (!cardRef.current || !titleRef.current || !descRef.current) return;
+
+      const titleSplit = SplitText.create(titleRef.current, {
+        type: "chars",
+        charsClass: "title-char",
+      });
+
+      const descSplit = SplitText.create(descRef.current, {
+        type: "words",
+        wordsClass: "desc-word",
+      });
+
+      gsap.set(titleSplit.chars, {
+        opacity: 0,
+        y: 80,
+        rotateX: -90,
+        transformOrigin: "50% 50% -50px",
+      });
+
+      gsap.to(titleSplit.chars, {
+        opacity: 1,
+        y: 0,
+        rotateX: 0,
+        stagger: {
+          each: 0.03,
+          from: "start",
+        },
+        duration: 1,
+        ease: "power4.out",
+        scrollTrigger: {
+          trigger: cardRef.current,
+          start: "top 75%",
+          toggleActions: "play none none reverse",
+        },
+      });
+
+      gsap.set(descSplit.words, {
+        opacity: 0,
+        y: 20,
+        filter: "blur(8px)",
+      });
+
+      gsap.to(descSplit.words, {
+        opacity: 1,
+        y: 0,
+        filter: "blur(0px)",
+        stagger: {
+          each: 0.02,
+          from: "start",
+        },
+        duration: 0.6,
+        ease: "power3.out",
+        scrollTrigger: {
+          trigger: cardRef.current,
+          start: "top 70%",
+          toggleActions: "play none none reverse",
+        },
+      });
+
+      // tags
+      const tags = cardRef.current.querySelectorAll(".work-card-tag");
+      gsap.set(tags, {
+        opacity: 0,
+        scale: 0.8,
+        y: 15,
+      });
+
+      gsap.to(tags, {
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        stagger: 0.08,
+        duration: 0.5,
+        ease: "back.out(1.7)",
+        scrollTrigger: {
+          trigger: cardRef.current,
+          start: "top 65%",
+          toggleActions: "play none none reverse",
+        },
+      });
+
+      const numberEl = cardRef.current.querySelector(".work-card-number");
+      if (numberEl) {
+        gsap.from(numberEl, {
+          opacity: 0,
+          scale: 0.5,
+          rotation: -15,
+          duration: 0.8,
+          ease: "back.out(2)",
+          scrollTrigger: {
+            trigger: cardRef.current,
+            start: "top 80%",
+            toggleActions: "play none none reverse",
+          },
+        });
+      }
+
+      const yearEl = cardRef.current.querySelector(".work-card-year");
+      if (yearEl) {
+        gsap.from(yearEl, {
+          opacity: 0,
+          x: 30,
+          duration: 0.6,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: cardRef.current,
+            start: "top 80%",
+            toggleActions: "play none none reverse",
+          },
+        });
+      }
+
+      const cta = cardRef.current.querySelector(".work-card-cta");
+      if (cta) {
+        gsap.from(cta, {
+          opacity: 0,
+          x: -20,
+          duration: 0.6,
+          delay: 0.3,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: cardRef.current,
+            start: "top 60%",
+            toggleActions: "play none none reverse",
+          },
+        });
+      }
+
+      return () => {
+        titleSplit.revert();
+        descSplit.revert();
+      };
+    },
+    { scope: cardRef }
+  );
+
   return (
-    <div className="work-card" id={`work-card-${index + 1}`}>
+    <div className="work-card" id={`work-card-${index + 1}`} ref={cardRef}>
       <div className="work-card-inner">
         <div className="work-card-content">
           <div className="work-card-header">
@@ -108,8 +313,12 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
             </span>
             <span className="work-card-year">{project.year}</span>
           </div>
-          <h3 className="work-card-title">{project.title}</h3>
-          <p className="work-card-description">{project.description}</p>
+          <h3 className="work-card-title" ref={titleRef}>
+            {project.title}
+          </h3>
+          <p className="work-card-description" ref={descRef}>
+            {project.description}
+          </p>
           <div className="work-card-tags">
             {project.tags.map((tag, i) => (
               <span key={i} className="work-card-tag">
@@ -149,12 +358,12 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
 const Work: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+  const introHeadingRef = useRef<HTMLHeadingElement>(null);
 
   useGSAP(
     () => {
       const cards = gsap.utils.toArray<HTMLElement>(".work-card");
 
-      // Pin the intro section
       ScrollTrigger.create({
         trigger: cards[0],
         start: "top 15%",
@@ -164,66 +373,87 @@ const Work: React.FC = () => {
         pinSpacing: false,
       });
 
-      // Animate each card
+      // sticky cards
       cards.forEach((card, index) => {
         const isLastCard = index === cards.length - 1;
         const cardInner = card.querySelector(".work-card-inner");
 
         if (!isLastCard && cardInner) {
-          // Pin the card
           ScrollTrigger.create({
             trigger: card,
             start: "top 15%",
-            endTrigger: ".work-outro",
-            end: "top 65%",
+            endTrigger: cards[cards.length - 1],
+            end: "top 15%",
             pin: true,
             pinSpacing: false,
           });
 
-          // Move card up as user scrolls
           gsap.to(cardInner, {
             y: `-${(cards.length - index) * 10}vh`,
             ease: "none",
             scrollTrigger: {
               trigger: card,
               start: "top 15%",
-              endTrigger: ".work-outro",
-              end: "top 65%",
+              endTrigger: cards[cards.length - 1],
+              end: "top 15%",
               scrub: true,
             },
           });
         }
       });
 
-      // Animate intro heading
-      const introHeading = sectionRef.current?.querySelector(
-        ".work-intro h2"
-      ) as HTMLElement;
-      if (introHeading) {
-        gsap.from(introHeading, {
-          y: 80,
+      // intro
+      if (introHeadingRef.current) {
+        gsap.from(introHeadingRef.current, {
           opacity: 0,
-          duration: 1.2,
-          ease: "power4.out",
+          y: 40,
+          duration: 1,
+          ease: "power3.out",
           scrollTrigger: {
-            trigger: introHeading,
+            trigger: introHeadingRef.current,
             start: "top 85%",
             toggleActions: "play none none reverse",
           },
         });
       }
 
-      // Animate intro description
+      const introLabel = sectionRef.current?.querySelector(".work-intro-label");
+      if (introLabel) {
+        gsap.from(introLabel, {
+          opacity: 0,
+          x: -30,
+          duration: 0.8,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: introLabel,
+            start: "top 90%",
+            toggleActions: "play none none reverse",
+          },
+        });
+      }
+
       const introDesc = sectionRef.current?.querySelector(
         ".work-intro-description"
       ) as HTMLElement;
       if (introDesc) {
-        gsap.from(introDesc, {
-          y: 60,
+        const descSplit = SplitText.create(introDesc, {
+          type: "words",
+          wordsClass: "intro-desc-word",
+        });
+
+        gsap.set(descSplit.words, {
           opacity: 0,
-          duration: 1,
-          delay: 0.2,
-          ease: "power4.out",
+          y: 30,
+          filter: "blur(4px)",
+        });
+
+        gsap.to(descSplit.words, {
+          opacity: 1,
+          y: 0,
+          filter: "blur(0px)",
+          stagger: 0.03,
+          duration: 0.6,
+          ease: "power3.out",
           scrollTrigger: {
             trigger: introDesc,
             start: "top 85%",
@@ -232,8 +462,7 @@ const Work: React.FC = () => {
         });
       }
 
-      // Cards entrance animation
-      cards.forEach((card, index) => {
+      cards.forEach((card) => {
         gsap.from(card, {
           y: 100,
           opacity: 0,
@@ -263,7 +492,7 @@ const Work: React.FC = () => {
             <span className="work-intro-dot"></span>
             <span>Selected Work</span>
           </div>
-          <h2>
+          <h2 ref={introHeadingRef}>
             Projects that push boundaries
             <br />
             <span className="work-intro-accent">and define experiences</span>
