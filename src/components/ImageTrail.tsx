@@ -5,45 +5,40 @@ import { useEffect, useRef } from "react";
 interface ImageTrailProps {
   images?: string[];
   containerSelector?: string;
+  cellSize?: number;
 }
 
 const ImageTrail = ({
   images: customImages,
   containerSelector = ".hero",
+  cellSize = 90,
 }: ImageTrailProps) => {
-  const trailRef = useRef<
-    { element: HTMLImageElement; rotation: number; removeTime: number }[]
-  >([]);
+  const trailRef = useRef<{ element: HTMLImageElement; removeTime: number }[]>(
+    []
+  );
   const animationRef = useRef<number | null>(null);
 
-  // Mouse position refs
-  const mouseXRef = useRef(0);
-  const mouseYRef = useRef(0);
-  const prevMouseXRef = useRef(0);
-  const prevMouseYRef = useRef(0);
+  const currentColRef = useRef(-1);
+  const currentRowRef = useRef(-1);
 
-  // Lerped (lagged) position refs
-  const lerpedXRef = useRef(0);
-  const lerpedYRef = useRef(0);
+  const lastMouseXRef = useRef(0);
+  const lastMouseYRef = useRef(0);
 
-  // Velocity tracking
-  const lastTimeRef = useRef(performance.now());
-  const velocityRef = useRef(0);
+  const lastStepTimeRef = useRef(0);
+  const STEP_COOLDOWN = 60;
 
-  // Spawn control
-  const lastSpawnTimeRef = useRef(0);
+  const moveThreshold = 20;
+
   const isCursorInContainerRef = useRef(false);
-
+  const isInitializedRef = useRef(false);
   const containerRef = useRef<HTMLElement | null>(null);
   const trailContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Config
+  const gridColumnsRef = useRef(1);
+  const gridRowsRef = useRef(1);
+
   const config = {
     imageLifespan: 750,
-    removalDelay: 50,
-    velocityThreshold: 0.08,
-    spawnInterval: 60,
-    lerpFactor: 0.15,
     inDuration: 400,
     outDuration: 600,
     inEasing: "cubic-bezier(.07,.5,.5,1)",
@@ -61,7 +56,16 @@ const ImageTrail = ({
 
     containerRef.current = container;
 
-    // Create trail images container if not exists
+    const updateGridDimensions = () => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      gridColumnsRef.current = Math.max(1, Math.floor(rect.width / cellSize));
+      gridRowsRef.current = Math.max(1, Math.floor(rect.height / cellSize));
+    };
+
+    updateGridDimensions();
+    window.addEventListener("resize", updateGridDimensions);
+
     let trailContainer = container.querySelector(
       ".image-trail-container"
     ) as HTMLDivElement;
@@ -84,7 +88,30 @@ const ImageTrail = ({
       );
     };
 
-    const createImage = () => {
+    const getInitialCell = (clientX: number, clientY: number) => {
+      if (!containerRef.current) return { col: 0, row: 0 };
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const relativeX = clientX - rect.left;
+      const relativeY = clientY - rect.top;
+
+      const col = Math.floor(relativeX / cellSize);
+      const row = Math.floor(relativeY / cellSize);
+
+      return {
+        col: Math.max(0, Math.min(col, gridColumnsRef.current - 1)),
+        row: Math.max(0, Math.min(row, gridRowsRef.current - 1)),
+      };
+    };
+
+    const getCellCenter = (col: number, row: number) => {
+      return {
+        x: (col + 0.5) * cellSize,
+        y: (row + 0.5) * cellSize,
+      };
+    };
+
+    const createImage = (col: number, row: number) => {
       if (
         !containerRef.current ||
         !trailContainerRef.current ||
@@ -96,31 +123,25 @@ const ImageTrail = ({
       img.classList.add("trail-img");
 
       const randomIndex = Math.floor(Math.random() * images.length);
-      const rotation = (Math.random() - 0.5) * 50;
       img.src = images[randomIndex];
 
-      const rect = containerRef.current.getBoundingClientRect();
-      const relativeX = lerpedXRef.current - rect.left;
-      const relativeY = lerpedYRef.current - rect.top;
+      const { x, y } = getCellCenter(col, row);
 
-      // Initial state: slightly smaller and transparent
-      img.style.left = `${relativeX}px`;
-      img.style.top = `${relativeY}px`;
-      img.style.transform = `translate(-50%, -50%) rotate(${rotation}deg) scale(${config.initialScale})`;
+      img.style.left = `${x}px`;
+      img.style.top = `${y}px`;
+      img.style.transform = `translate(-50%, -50%) scale(${config.initialScale})`;
       img.style.opacity = "0";
       img.style.transition = `transform ${config.inDuration}ms ${config.inEasing}, opacity ${config.inDuration}ms ${config.inEasing}`;
 
       trailContainerRef.current.appendChild(img);
 
-      // Animate in: scale to 1 and fade in
       requestAnimationFrame(() => {
-        img.style.transform = `translate(-50%, -50%) rotate(${rotation}deg) scale(1)`;
+        img.style.transform = `translate(-50%, -50%) scale(1)`;
         img.style.opacity = "1";
       });
 
       trailRef.current.push({
         element: img,
-        rotation: rotation,
         removeTime: Date.now() + config.imageLifespan,
       });
     };
@@ -134,9 +155,8 @@ const ImageTrail = ({
           const imgToRemove = trailRef.current.shift();
 
           if (imgToRemove) {
-            // Animate out: scale down and fade out
             imgToRemove.element.style.transition = `transform ${config.outDuration}ms ${config.outEasing}, opacity ${config.outDuration}ms ${config.outEasing}`;
-            imgToRemove.element.style.transform = `translate(-50%, -50%) rotate(${imgToRemove.rotation}deg) scale(${config.exitScale})`;
+            imgToRemove.element.style.transform = `translate(-50%, -50%) scale(${config.exitScale})`;
             imgToRemove.element.style.opacity = "0";
 
             setTimeout(() => {
@@ -152,73 +172,70 @@ const ImageTrail = ({
     };
 
     const animate = () => {
-      const now = performance.now();
-      const deltaTime = now - lastTimeRef.current;
-      lastTimeRef.current = now;
-
-      // Lerp the trail position toward the actual cursor
-      lerpedXRef.current +=
-        (mouseXRef.current - lerpedXRef.current) * config.lerpFactor;
-      lerpedYRef.current +=
-        (mouseYRef.current - lerpedYRef.current) * config.lerpFactor;
-
-      // Calculate velocity based on mouse delta
-      const dx = mouseXRef.current - prevMouseXRef.current;
-      const dy = mouseYRef.current - prevMouseYRef.current;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      // Velocity = distance per millisecond, normalized
-      velocityRef.current = deltaTime > 0 ? distance / deltaTime : 0;
-
-      // Update previous mouse position
-      prevMouseXRef.current = mouseXRef.current;
-      prevMouseYRef.current = mouseYRef.current;
-
-      // Spawn images only when velocity exceeds threshold
-      const currentTime = Date.now();
-      if (
-        velocityRef.current > config.velocityThreshold &&
-        isCursorInContainerRef.current &&
-        currentTime - lastSpawnTimeRef.current > config.spawnInterval
-      ) {
-        createImage();
-        lastSpawnTimeRef.current = currentTime;
-      }
-
-      // Remove old images
       removeOldImages();
-
       animationRef.current = requestAnimationFrame(animate);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      mouseXRef.current = e.clientX;
-      mouseYRef.current = e.clientY;
-      isCursorInContainerRef.current = isInContainer(e.clientX, e.clientY);
-    };
+      const inContainer = isInContainer(e.clientX, e.clientY);
+      isCursorInContainerRef.current = inContainer;
 
-    // Initialize lerped position on first mouse move
-    const setInitialMousePos = (event: MouseEvent) => {
-      mouseXRef.current = event.clientX;
-      mouseYRef.current = event.clientY;
-      prevMouseXRef.current = event.clientX;
-      prevMouseYRef.current = event.clientY;
-      lerpedXRef.current = event.clientX;
-      lerpedYRef.current = event.clientY;
-      isCursorInContainerRef.current = isInContainer(
-        event.clientX,
-        event.clientY
+      if (!inContainer) {
+        isInitializedRef.current = false;
+        currentColRef.current = -1;
+        currentRowRef.current = -1;
+        return;
+      }
+
+      if (!isInitializedRef.current) {
+        const { col, row } = getInitialCell(e.clientX, e.clientY);
+        currentColRef.current = col;
+        currentRowRef.current = row;
+        lastMouseXRef.current = e.clientX;
+        lastMouseYRef.current = e.clientY;
+        isInitializedRef.current = true;
+        createImage(col, row);
+        return;
+      }
+
+      const now = performance.now();
+      if (now - lastStepTimeRef.current < STEP_COOLDOWN) return;
+
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const relativeX = e.clientX - rect.left;
+      const relativeY = e.clientY - rect.top;
+
+      const targetCol = Math.floor(relativeX / cellSize);
+      const targetRow = Math.floor(relativeY / cellSize);
+
+      const clampedTargetCol = Math.max(
+        0,
+        Math.min(targetCol, gridColumnsRef.current - 1)
       );
-      document.removeEventListener("mousemove", setInitialMousePos);
+      const clampedTargetRow = Math.max(
+        0,
+        Math.min(targetRow, gridRowsRef.current - 1)
+      );
+
+      if (
+        clampedTargetCol === currentColRef.current &&
+        clampedTargetRow === currentRowRef.current
+      )
+        return;
+
+      currentColRef.current = clampedTargetCol;
+      currentRowRef.current = clampedTargetRow;
+      lastStepTimeRef.current = now;
+      createImage(clampedTargetCol, clampedTargetRow);
     };
 
-    document.addEventListener("mousemove", setInitialMousePos, { once: true });
     document.addEventListener("mousemove", handleMouseMove);
-
     animationRef.current = requestAnimationFrame(animate);
 
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("resize", updateGridDimensions);
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
 
       trailRef.current.forEach((item) => {
@@ -228,7 +245,7 @@ const ImageTrail = ({
       });
       trailRef.current = [];
     };
-  }, [containerSelector, customImages]);
+  }, [containerSelector, customImages, cellSize]);
 
   return null;
 };

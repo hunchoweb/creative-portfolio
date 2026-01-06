@@ -331,7 +331,7 @@ const Hero = () => {
     "/images/Lightship.png",
     "/images/Moqo.png",
     "/images/Obys.png",
-    "/images/Raft.png",
+    // "/images/Raft.png",
     "/images/magma.png",
     "/images/tala.png",
     "/images/translatorChat.png",
@@ -390,7 +390,7 @@ const Hero = () => {
 
       <div className="sidebar">
         <div className="logo">
-          <img src="/logo.png" alt="logo" />
+          <img src="/logo.jpg" alt="logo" />
         </div>
 
         <div className="divider"></div>

@@ -204,6 +204,8 @@ nav .divider {
   transform: translateY(-50%);
   width: 60%;
   z-index: 2;
+  color: var(--bg);
+  mix-blend-mode: difference;
 }
 
 .site-info {
@@ -216,6 +218,8 @@ nav .divider {
   flex-direction: column;
   gap: 1rem;
   z-index: 2;
+  color: var(--bg);
+  mix-blend-mode: difference;
 }
 
 .site-info .divider {
@@ -229,6 +233,11 @@ nav .divider {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+
+.site-info p,
+.site-info h2 {
+  color: inherit;
 }
 
 .scroller {
@@ -354,10 +363,10 @@ nav .divider {
 
 .trail-img {
   position: absolute;
-  width: 180px;
-  height: 180px;
+  width: 90px;
+  height: 90px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 0;
   transform-origin: center;
   pointer-events: none;
   will-change: transform, opacity;
