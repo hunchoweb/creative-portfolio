@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Flip } from "gsap/all";
 import SplitType from "split-type";
+import ImageTrail from "./ImageTrail";
 
 gsap.registerPlugin(Flip);
 
@@ -341,6 +342,7 @@ const Hero = () => {
   return (
     <section className="hero" ref={containerRef}>
       <div className="hero-bg"></div>
+      <ImageTrail images={images} containerSelector=".hero" />
 
       <div className="counter">
         <div className="counter-1 digit">
