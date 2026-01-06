@@ -342,7 +342,7 @@ const Hero = () => {
   return (
     <section className="hero" ref={containerRef}>
       <div className="hero-bg"></div>
-      <ImageTrail images={images} containerSelector=".hero" />
+      <ImageTrail containerSelector=".hero" />
 
       <div className="counter">
         <div className="counter-1 digit">

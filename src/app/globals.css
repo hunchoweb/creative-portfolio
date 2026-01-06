@@ -371,4 +371,10 @@ nav .divider {
   pointer-events: none;
   will-change: transform, opacity;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  /* GPU acceleration optimizations */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+  contain: layout paint;
+  image-rendering: auto;
 }

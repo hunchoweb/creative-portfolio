@@ -8,6 +8,19 @@ interface ImageTrailProps {
   cellSize?: number;
 }
 
+// Optimized trail images (small, compressed versions for smooth performance)
+const TRAIL_IMAGES = [
+  "/trail-images/Lightship.jpg",
+  "/trail-images/Moqo.jpg",
+  "/trail-images/Obys.jpg",
+  "/trail-images/magma.jpg",
+  "/trail-images/tala.jpg",
+  "/trail-images/translatorChat.jpg",
+  "/trail-images/hunchoApes.jpg",
+  "/trail-images/linear.jpg",
+  "/trail-images/Raft.jpg",
+];
+
 const ImageTrail = ({
   images: customImages,
   containerSelector = ".hero",
@@ -17,6 +30,8 @@ const ImageTrail = ({
     []
   );
   const animationRef = useRef<number | null>(null);
+  const preloadedImagesRef = useRef<HTMLImageElement[]>([]);
+  const imagesLoadedRef = useRef(false);
 
   const currentColRef = useRef(-1);
   const currentRowRef = useRef(-1);
@@ -47,6 +62,28 @@ const ImageTrail = ({
     exitScale: 0.7,
   };
 
+  // Preload all images on mount for instant display
+  useEffect(() => {
+    const imagesToPreload = customImages || TRAIL_IMAGES;
+
+    const preloadImages = async () => {
+      const loadPromises = imagesToPreload.map((src) => {
+        return new Promise<HTMLImageElement>((resolve) => {
+          const img = new Image();
+          img.src = src;
+          img.decoding = "async";
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(img); // Still resolve to not block others
+        });
+      });
+
+      preloadedImagesRef.current = await Promise.all(loadPromises);
+      imagesLoadedRef.current = true;
+    };
+
+    preloadImages();
+  }, [customImages]);
+
   useEffect(() => {
     const container = document.querySelector(containerSelector) as HTMLElement;
     if (!container) {
@@ -76,9 +113,8 @@ const ImageTrail = ({
     }
     trailContainerRef.current = trailContainer;
 
-    const images =
-      customImages ||
-      Array.from({ length: 35 }, (_, i) => `/assets/img${i + 1}.jpeg`);
+    // Use optimized trail images instead of full-size portfolio images
+    const images = customImages || TRAIL_IMAGES;
 
     const isInContainer = (x: number, y: number) => {
       if (!containerRef.current) return false;
